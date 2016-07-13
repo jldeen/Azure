@@ -1,51 +1,57 @@
-﻿# --- Details -----
+﻿#-----fill in these variables
 
-$rgName = "LVMTest" 
-$vmName = "LVMTest"
-#local file path specified
-$template = "Template1.json"
-$vhdName = "CoolVHDTest"
-$deploy = "deploytest"
+$rgName = "LVMTest"
 
-# ---- Network info -----
+$template = "C:\Templates\Template1.json" # local file path specified
 
-azure network public-ip create $rgName LVMTest2 -l $location
+$vmName = ”LVMTestVM”
 
-$virtualNetwork = "LVMTest"
-$subnet = "default"
-$PIP = "LVMTest2"
-$NSG = "LVMTest"
-$Location = "WestUS"
+$vhdName = "JDVHDTest"
 
-azure network nic create $rgName $vm_nic -k $subnet -m $virtualNetwork -p $PIA -l $Location
+ 
 
-# ---- New VM Details --------
-
-$vm_userName = "jldeen"
-$vm_passWord = "Passwordtest1"
-$vm_nic = "lvmtest234"
-$ID = "/subscriptions/2f6472b1-f49b-4d88-87cf-30d3083413b5/resourceGroups/LVMTest/providers/Microsoft.Network/networkInterfaces/lvmtest234"
-
-# ---------- Begin Capture -----------
-azure config mode arm
-
-azure login
-az
-#verify subscriptions available
-azure account list
-
-#stop the vm
+#-----stop the vm
 azure vm deallocate -g $rgName -n $vmName
 
-#generalize the image
-azure vm generalize –g $rgName -n $vmName
+#-----generalize the image
+azure vm generalize $rgName -n $vmName
 
-#capture the image
+#-----capture the image
 azure vm capture $rgName $vmName $vhdName -t $template
 
-# ---------- End Capture -----------
+#stage2 - Staging
 
-# ---------- Begin Deployment -----------
+$rgName = "LVMTest"
+$vNet = "LVMTest"
+$subnet = "default"
+$pip = "LVMIP"
+$nic = "LVMNic"
+$vmName = "LVMTestVM"
 
-#deployment
-azure vm create <your-resource-group-name> <your-new-vm-name> eastus Linux -d "https://xxxxxxxxxxxxxx.blob.core.windows.net/vhds/<your-new-VM-prefix>.vhd" -Q "https://xxxxxxxxxxxxxx.blob.core.windows.net/system/Microsoft.Compute/Images/vhds/<your-image-prefix>-osDisk.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.vhd" -z Standard_A0 -u $vm_userName -p $vm_passWord -f $nicName
+# ---- powershell VM Removal ----
+
+Login-AzureRmAccount
+Remove-AzureRmVM -ResourceGroupName $rgName –Name $vmName -Force
+
+#azure group create $rgName -l "westus"
+
+#azure network vnet create $rgName $vNet -l "westus"
+
+#azure network vnet subnet create $rgName $vNet $subnet
+
+# ---- Network Creation -----
+
+azure network public-ip create $rgName $pip -l "westus"
+
+azure network nic create $rgName $nic -k $subnet -m $vNet -p $pip -l "westus"
+
+azure network nic show $rgName $nic
+
+$id = "/subscriptions/2f6472b1-f49b-4d88-87cf-30d3083413b5/resourceGroups/LVMTest/providers/Microsoft.Network/networkInterfaces/LVMNic"
+
+#stage3 - Deploy
+
+$deployName = "LVMDemo"
+$template = "C:\Templates\Template1.json" # local file path specified
+
+azure group deployment create $rgName $deployName -f $template
